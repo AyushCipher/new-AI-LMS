@@ -8,9 +8,14 @@ import sendMail from "../configs/Mail.js";
 export const signUp = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+    const allowedSignupRoles = ["student", "educator"];
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (!allowedSignupRoles.includes(role)) {
+      return res.status(400).json({ message: "Invalid role selected" });
     }
 
     if (!validator.isEmail(email)) {
@@ -45,12 +50,20 @@ export const signUp = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
+    const userData = {
       name,
       email,
       password: hashedPassword,
       role,
-    });
+    };
+
+    if (role === "educator") {
+      userData.teacherApplication = {
+        status: "not_submitted",
+      };
+    }
+
+    const user = await User.create(userData);
 
     const token = await genToken(user._id);
 
@@ -121,13 +134,40 @@ export const googleSignup = async (req, res) => {
 
     let user = await User.findOne({ email });
 
-    if (!user) {
-      user = await User.create({
-        name,
-        email,
-        role,
+    // If user already exists, just log them in
+    if (user) {
+      const token = await genToken(user._id);
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
+
+      return res.status(200).json(user);
     }
+
+    // Only validate role for new users
+    const allowedSignupRoles = ["student", "educator"];
+    if (!role || !allowedSignupRoles.includes(role)) {
+      return res.status(400).json({ message: "Please select a valid role (student or educator)" });
+    }
+
+    // Create new user
+    const userData = {
+      name,
+      email,
+      role,
+    };
+
+    if (role === "educator") {
+      userData.teacherApplication = {
+        status: "not_submitted",
+      };
+    }
+
+    user = await User.create(userData);
 
     const token = await genToken(user._id);
 

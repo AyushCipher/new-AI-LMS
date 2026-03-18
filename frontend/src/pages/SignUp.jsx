@@ -51,11 +51,15 @@ function SignUp() {
             
             const result = await axios.post(serverUrl + "/api/auth/googlesignup" , {name, email, role}, {withCredentials:true})
             dispatch(setUserData(result.data))
-            navigate("/")
+            if (result.data?.role === "admin") {
+                navigate("/adminpanel")
+            } else {
+                navigate("/")
+            }
             toast.success("SignUp Successfully")
         } catch (error) {
             console.log(error)
-            toast.error(error.response.data.message)
+            toast.error(error?.response?.data?.message || "Google signup failed")
         }
     }
 

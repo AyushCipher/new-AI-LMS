@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { serverUrl } from '../App';
-import { FaArrowLeftLong } from "react-icons/fa6";
+import { FaArrowLeftLong, FaClipboardList } from "react-icons/fa6";
 import img from "../assets/empty.jpg"
 import Card from "../components/Card.jsx"
 import { setSelectedCourseData } from '../redux/courseSlice';
@@ -11,7 +11,7 @@ import { FaLock, FaPlayCircle } from "react-icons/fa";
 import { toast } from 'react-toastify';
 import { FaStar } from "react-icons/fa6";
 import { setUserData } from '../redux/userSlice';
-
+import CourseAnnouncements from '../components/CourseAnnouncements';
 
 function ViewCourse() {
   const { courseId } = useParams();
@@ -28,7 +28,8 @@ function ViewCourse() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-
+  // Helper to check if current user is the course creator (teacher)
+  const isTeacher = userData?._id && selectedCourseData?.creator && (userData._id === selectedCourseData.creator);
 
   const handleReview = async () => {
     // Prevent duplicate review submission
@@ -244,14 +245,23 @@ function ViewCourse() {
               <li>✅ Lifetime access to course materials</li>
             </ul>
 
-            {/* Enroll Button */}
-            {!isEnrolled ? <button className="bg-[black] text-white px-6 py-2 rounded hover:bg-gray-700 mt-3" onClick={() => handleEnroll(courseId, userData._id)}>
-              Enroll Now
-            </button> :
-            <button className="bg-green-200 text-green-600 px-6 py-2 rounded hover:bg-gray-100 hover:border mt-3" onClick={() => navigate(`/viewlecture/${courseId}`)}>
-             Watch Now
-            </button>
-            }
+            {/* Enroll Button - Hidden for admins */}
+            {userData?.role !== 'admin' && (
+              !isEnrolled ? <button className="bg-[black] text-white px-6 py-2 rounded hover:bg-gray-700 mt-3" onClick={() => handleEnroll(courseId, userData._id)}>
+                Enroll Now
+              </button> :
+              <div className="flex gap-3 flex-wrap mt-3">
+                <button className="bg-green-200 text-green-600 px-6 py-2 rounded hover:bg-gray-100 hover:border" onClick={() => navigate(`/viewlecture/${courseId}`)}>
+                 Watch Now
+                </button>
+                {/* Only students see View Exams button */}
+                {!isTeacher && (
+                  <button className="bg-blue-100 text-blue-600 px-6 py-2 rounded hover:bg-blue-200 flex items-center gap-2" onClick={() => navigate(`/studentexams`)}>
+                    <FaClipboardList /> View Exams
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -337,136 +347,112 @@ function ViewCourse() {
         </div>
 
         {/* Reviews Section */}
-        <div className="mt-8 border-t pt-6">
-          {/* Only show review form if user is enrolled and has not already reviewed */}
-          {isEnrolled && (() => {
-            const alreadyReviewed = selectedCourseData?.reviews?.some(
-              (r) => r.user && (r.user._id === userData._id || r.user === userData._id)
-            );
-            if (alreadyReviewed) {
-              return (
-                <div className="mb-4 text-green-600 font-semibold">You have already reviewed this course.</div>
+        {!isTeacher && (
+          <div className="mt-8 border-t pt-6">
+            {/* Only show review form if user is enrolled and has not already reviewed */}
+            {isEnrolled && (() => {
+              const alreadyReviewed = selectedCourseData?.reviews?.some(
+                (r) => r.user && (r.user._id === userData._id || r.user === userData._id)
               );
-            }
-            return (
-              <>
-                <h2 className="text-xl font-semibold mb-2">Write a Review</h2>
-                <div className="mb-4">
-                  <div className="flex gap-1 mb-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <FaStar key={star}
-                        onClick={() => setRating(star)}
-                        className={star <= rating ? "fill-yellow-500" : "fill-gray-300"} />
-                    ))}
+              if (alreadyReviewed) {
+                return (
+                  <div className="mb-4 text-green-600 font-semibold">You have already reviewed this course.</div>
+                );
+              }
+              return (
+                <>
+                  <h2 className="text-xl font-semibold mb-2">Write a Review</h2>
+                  <div className="mb-4">
+                    <div className="flex gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FaStar key={star}
+                          onClick={() => setRating(star)}
+                          className={star <= rating ? "fill-yellow-500" : "fill-gray-300"} />
+                      ))}
+                    </div>
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="Write your comment here..."
+                      className="w-full border border-gray-300 rounded-lg p-2"
+                      rows="3"
+                    />
+                    <button
+                      className="bg-black text-white mt-3 px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-60"
+                      onClick={handleReview}
+                      disabled={isSubmittingReview}
+                    >
+                      {isSubmittingReview ? "Submitting..." : "Submit Review"}
+                    </button>
                   </div>
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Write your comment here..."
-                    className="w-full border border-gray-300 rounded-lg p-2"
-                    rows="3"
-                  />
-                  <button
-                    className="bg-black text-white mt-3 px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-60"
-                    onClick={handleReview}
-                    disabled={isSubmittingReview}
-                  >
-                    {isSubmittingReview ? "Submitting..." : "Submit Review"}
-                  </button>
-                </div>
-              </>
-            );
-          })()}
+                </>
+              );
+            })()}
+          </div>
 
-          {/* Instructor Info */}
-          {/* <div className="flex items-center gap-4 pt-4 border-t ">
-            {creatorData?.photoUrl ? <img
-              src={creatorData?.photoUrl}
-              alt="Instructor"
-              className="w-16 h-16 rounded-full object-cover"
-            />: <img
-              src={img}
-              alt="Instructor"
-              className="w-16 h-16 rounded-full object-cover"
-            />
-            }
-            <div>
-              <h3 className="text-lg font-semibold">{creatorData?.name}</h3>
-              <p className="md:text-sm text-gray-600 text-[10px]">{creatorData?.description}</p>
-              <p className="md:text-sm text-[10px] font-semibold text-blue-600">{creatorData?.email}</p>
+
+        )}
+
+        {/* Instructor Info */}
+        <div className="mt-6 rounded-2xl border p-5 shadow-sm bg-white">
+          <div className="flex items-center gap-5 pb-5 border-b">
+            {/* Avatar With Fallback */}
+            {creatorData?.photoUrl ? (
+              <img
+                src={creatorData?.photoUrl}
+                alt="Instructor"
+                className="w-20 h-20 rounded-full object-cover ring-2 ring-blue-200 shadow-sm"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full text-white flex items-center justify-center text-3xl border-2 bg-black border-white cursor-pointer shadow-sm">
+                {creatorData?.name?.slice(0, 1)?.toUpperCase()}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <h3 className="text-xl font-semibold tracking-wide text-gray-800">
+                {creatorData?.name}
+              </h3>
+
+              <p className="text-sm text-gray-600 leading-snug max-w-md">
+                {creatorData?.description}
+              </p>
+
+              <p className="text-sm font-medium text-blue-600">
+                {creatorData?.email}
+              </p>
             </div>
           </div>
 
-          <div>
-            <p className='text-xl font-semibold mb-2'>Other Published Courses by the Educator -</p>
-            <div className='w-full transition-all duration-300 py-[20px] flex items-start justify-center lg:justify-start flex-wrap gap-6 lg:px-[80px] '>
-            
-              {
-                selectedCreatorCourse?.map((item,index)=>(
-                  <Card key={index} thumbnail={item.thumbnail} title={item.title} id={item._id} price={item.price} category={item.category}/>
-                ))
-              }
-            </div>
-          </div> */}
-
-          {/* Instructor Info */}
-          <div className="mt-6 rounded-2xl border p-5 shadow-sm bg-white">
-            <div className="flex items-center gap-5 pb-5 border-b">
-              {/* Avatar With Fallback */}
-              {creatorData?.photoUrl ? (
-                <img
-                  src={creatorData?.photoUrl}
-                  alt="Instructor"
-                  className="w-20 h-20 rounded-full object-cover ring-2 ring-blue-200 shadow-sm"
-                />
-              ) : (
-                <div className="w-20 h-20 rounded-full text-white flex items-center justify-center text-3xl border-2 bg-black border-white cursor-pointer shadow-sm">
-                  {creatorData?.name?.slice(0, 1)?.toUpperCase()}
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <h3 className="text-xl font-semibold tracking-wide text-gray-800">
-                  {creatorData?.name}
-                </h3>
-
-                <p className="text-sm text-gray-600 leading-snug max-w-md">
-                  {creatorData?.description}
-                </p>
-
-                <p className="text-sm font-medium text-blue-600">
-                  {creatorData?.email}
-                </p>
-              </div>
-            </div>
-
-            {/* Other Courses */}
-            <div className="mt-6">
-              <p className="text-xl font-semibold mb-4 text-gray-800">
-                Other Published Courses by the Educator
-              </p>
-              <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 py-6 place-items-center">
-                {selectedCreatorCourse?.map((item, index) => {
-                  console.log(`Course: ${item.title}, Reviews:`, item.reviews);
-                  return (
-                    <Card
-                      key={index}
-                      thumbnail={item.thumbnail}
-                      title={item.title}
-                      id={item._id}
-                      price={item.price}
-                      category={item.category}
-                      reviews={item.reviews}
-                    />
-                  );
-                })}
-              </div>
+          {/* Other Courses */}
+          <div className="mt-6">
+            <p className="text-xl font-semibold mb-4 text-gray-800">
+              Other Published Courses by the Educator
+            </p>
+            <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 py-6 place-items-center">
+              {selectedCreatorCourse?.map((item, index) => {
+                console.log(`Course: ${item.title}, Reviews:`, item.reviews);
+                return (
+                  <Card
+                    key={index}
+                    thumbnail={item.thumbnail}
+                    title={item.title}
+                    id={item._id}
+                    price={item.price}
+                    category={item.category}
+                    reviews={item.reviews}
+                  />
+                );
+              })}
             </div>
           </div>
         </div>
+
+        {/* Announcements Section: Only show for teachers, not for students */}
+        {isTeacher && <CourseAnnouncements courseId={courseId} isTeacher={isTeacher} />}
       </div>
     </div>
-  )
+  );
 }
 
-export default ViewCourse
+export default ViewCourse;

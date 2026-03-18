@@ -16,6 +16,7 @@ function Nav() {
   let navigate = useNavigate()
   let dispatch = useDispatch()
   let {userData} = useSelector(state=>state.user)
+  const isEducatorApproved = userData?.role === "educator" && userData?.teacherApplication?.status === "approved"
 
   const handleLogout = async () => {
     try {
@@ -31,8 +32,9 @@ function Nav() {
   return (
     <div>
       <div className='w-[100%] h-[70px] fixed top-0 px-[20px] py-[10px] flex items-center justify-between bg-[#00000047] z-10'>
-        <div className='lg:w-[20%] w-[40%] lg:pl-[50px]'>
+        <div className='lg:w-[20%] w-[40%] flex items-center gap-3 lg:pl-[50px]'>
           <img src={logo} className='w-[60px] rounded-[5px] border-2 border-white cursor-pointer' onClick={()=>navigate("/")} alt="" />
+          <span className="text-white text-xl font-bold tracking-wide select-none" style={{letterSpacing: '1px'}}>Virtual Courses</span>
         </div>
       
         <div className='w-[30%] lg:flex items-center justify-center gap-4 hidden'>
@@ -47,6 +49,8 @@ function Nav() {
             
           {userData?.role == "educator" ? <div className='px-[20px] py-[10px] border-2 lg:border-white border-black lg:text-white bg-[black] text-black rounded-[10px] text-[18px] font-light flex gap-2 cursor-pointer' onClick={ ()=>navigate("/dashboard")}> Dashboard </div>
           : ""}
+          {userData?.role == "admin" ? <div className='px-[20px] py-[10px] border-2 lg:border-white border-black lg:text-white bg-[black] text-black rounded-[10px] text-[18px] font-light flex gap-2 cursor-pointer' onClick={ ()=>navigate("/adminpanel")}> Admin Panel </div>
+          : ""}
           {!userData && <span className='px-[20px] py-[10px] border-2 border-white text-white rounded-[10px] text-[18px] font-light cursor-pointer bg-[#000000d5]' onClick={() => navigate("/login")}> Login </span>}
           {userData && <span className='px-[20px] py-[10px] bg-white text-black rounded-[10px] shadow-sm shadow-black text-[18px] cursor-pointer' onClick={handleLogout}> LogOut </span>}        
 
@@ -54,7 +58,15 @@ function Nav() {
 
         {showPro && <div className='absolute top-[110%] right-[15%] flex items-center flex-col justify-center gap-2 text-[16px] rounded-md bg-[white] px-[15px] py-[10px] border-[2px] border-black hover:border-white hover:text-white cursor-pointer hover:bg-black' >
           <span className='bg-[black] text-white  px-[30px] py-[10px] rounded-2xl hover:bg-gray-600' onClick={() => navigate("/profile")}>My Profile</span>
-          <span className='bg-[black] text-white hover:bg-gray-600 px-[25px] py-[10px] rounded-2xl' onClick={() => navigate("/enrolledcourses")}>My Courses</span>
+          {userData?.role === "educator" && !isEducatorApproved && (
+            <span className='bg-[black] text-white hover:bg-gray-600 px-[25px] py-[10px] rounded-2xl' onClick={() => navigate("/teacher-application")}>Teacher Form</span>
+          )}
+          {userData?.role !== "educator" && (
+            <span className='bg-[black] text-white hover:bg-gray-600 px-[25px] py-[10px] rounded-2xl' onClick={() => navigate("/enrolledcourses")}>My Courses</span>
+          )}
+          {userData?.role !== "educator" && (
+            <span className='bg-[black] text-white hover:bg-gray-600 px-[25px] py-[10px] rounded-2xl' onClick={() => navigate("/my-certificates")}>Certificates</span>
+          )}
         </div>}
 
         <GiHamburgerMenu className='w-[30px] h-[30px] lg:hidden fill-white cursor-pointer' onClick={() => setShowHam(prev=>!prev)}/>
@@ -73,9 +85,19 @@ function Nav() {
         }
         
         <span className='flex items-center justify-center gap-2 text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[65px] py-[20px] text-[18px]' onClick={() => navigate("/profile")}>My Profile </span>
-        <span className='flex items-center justify-center gap-2 text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[65px] py-[20px] text-[18px]' onClick={() => navigate("/enrolledcourses")}>My Courses</span>
+        {userData?.role !== "educator" && (
+          <span className='flex items-center justify-center gap-2 text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[65px] py-[20px] text-[18px]' onClick={() => navigate("/enrolledcourses")}>My Courses</span>
+        )}
+        {userData?.role !== "educator" && (
+          <span className='flex items-center justify-center gap-2 text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[60px] py-[20px] text-[18px]' onClick={() => navigate("/my-certificates")}>Certificates</span>
+        )}
         
         {userData?.role == "educator" ? <div className='flex items-center justify-center gap-2 text-[18px] text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[60px] py-[20px]' onClick={() => navigate("/dashboard")}>Dashboard</div>
+          : ""}
+        {userData?.role === "educator" && !isEducatorApproved && (
+          <span className='flex items-center justify-center gap-2 text-[18px] text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[55px] py-[20px]' onClick={() => navigate("/teacher-application")}>Teacher Form</span>
+        )}
+        {userData?.role == "admin" ? <div className='flex items-center justify-center gap-2 text-[18px] text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[60px] py-[20px]' onClick={() => navigate("/adminpanel")}>Admin Panel</div>
           : ""}
         {!userData ? <span className='flex items-center justify-center gap-2 text-[18px] text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[80px] py-[20px]' onClick={()=>navigate("/login")}>Login</span>:
         <span className='flex items-center justify-center gap-2 text-[18px] text-white border-[2px] border-[#fdfbfb7a] bg-[#000000d5] rounded-lg px-[75px] py-[20px]' onClick={handleLogout}>LogOut</span>}

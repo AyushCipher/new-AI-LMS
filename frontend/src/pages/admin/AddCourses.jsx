@@ -140,6 +140,7 @@ function AddCourses() {
         <h2 className="text-2xl font-semibold md:pl-[60px]">Add detailed information regarding course</h2>
         <div className="space-x-2 space-y-2">
           <button className="bg-black text-white px-4 py-2 rounded-md" onClick={() => navigate(`/createlecture/${selectedCourse?._id}`)}>Go to lectures page</button>
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-md" onClick={() => navigate(`/exammanagement/${selectedCourse?._id}`)}>Manage Exams</button>
         </div>
       </div>
 

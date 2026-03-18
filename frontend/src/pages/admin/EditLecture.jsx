@@ -1,6 +1,6 @@
 import axios from 'axios'
 import React, { useState } from 'react'
-import { FaArrowLeft } from "react-icons/fa"
+import { FaArrowLeft, FaFileAlt, FaTrash, FaDownload } from "react-icons/fa"
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import { serverUrl } from '../../App'
@@ -20,6 +20,9 @@ function EditLecture() {
   const [lectureTitle,setLectureTitle] = useState(selectedLecture?.lectureTitle || "")
   const [isPreviewFree,setIsPreviewFree] = useState(selectedLecture?.isPreviewFree || false)
   const [showNewUpload, setShowNewUpload] = useState(!selectedLecture?.videoUrl)
+  const [assignment, setAssignment] = useState(null)
+  const [showNewAssignment, setShowNewAssignment] = useState(!selectedLecture?.assignmentUrl)
+  const [removeAssignment, setRemoveAssignment] = useState(false)
 
   const editLecture = async () => {
     setLoading(true)
@@ -30,11 +33,23 @@ function EditLecture() {
     if(videoUrl) {
       formData.append("videoUrl",videoUrl)
     }
+    // Append assignment if selected
+    if(assignment) {
+      formData.append("assignment", assignment)
+    }
+    // Handle assignment removal
+    if(removeAssignment) {
+      formData.append("removeAssignment", "true")
+    }
     
     try {
       const result = await axios.post(serverUrl + `/api/course/editlecture/${lectureId}` , formData , {withCredentials:true})
       console.log(result.data)
-      dispatch(setLectureData([...lectureData,result.data]))
+      // Replace the edited lecture in the array instead of adding a duplicate
+      const updatedLectures = lectureData.map(lecture => 
+        lecture._id === lectureId ? result.data : lecture
+      )
+      dispatch(setLectureData(updatedLectures))
       toast.success("Lecture Updated")
       navigate("/courses")
       setLoading(false)
@@ -142,6 +157,91 @@ function EditLecture() {
             )}
           </div>
 
+          {/* Assignment Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              <FaFileAlt className="inline mr-2" />
+              Assignment (PDF, DOC, etc.)
+            </label>
+            
+            {/* Show existing assignment if available */}
+            {selectedLecture?.assignmentUrl && !showNewAssignment && !removeAssignment ? (
+              <div className="space-y-3">
+                <div className="border border-gray-300 rounded-md p-3 bg-green-50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FaFileAlt className="text-green-600" />
+                    <span className="text-sm text-gray-700">{selectedLecture.assignmentName || "Assignment"}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <a 
+                      href={selectedLecture.assignmentUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <FaDownload />
+                    </a>
+                    <button 
+                      type="button"
+                      onClick={() => setRemoveAssignment(true)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  onClick={() => setShowNewAssignment(true)}
+                >
+                  Upload a different assignment
+                </button>
+              </div>
+            ) : removeAssignment && !showNewAssignment ? (
+              <div className="space-y-2">
+                <div className="border border-red-300 rounded-md p-3 bg-red-50 text-sm text-red-700">
+                  Assignment will be removed on save
+                </div>
+                <button 
+                  type="button"
+                  className="text-sm text-gray-600 hover:text-gray-800 underline"
+                  onClick={() => setRemoveAssignment(false)}
+                >
+                  Cancel removal
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept='.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.zip,.rar'
+                  className="w-full border border-gray-300 rounded-md p-2 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-green-600 file:text-white hover:file:bg-green-700"
+                  onChange={(e) => {
+                    setAssignment(e.target.files[0])
+                    setRemoveAssignment(false)
+                  }}
+                />
+                {assignment && (
+                  <p className="text-sm text-green-600">Selected: {assignment.name}</p>
+                )}
+                {(selectedLecture?.assignmentUrl || removeAssignment) && (
+                  <button 
+                    type="button"
+                    className="text-sm text-gray-600 hover:text-gray-800 underline"
+                    onClick={() => {
+                      setShowNewAssignment(false)
+                      setAssignment(null)
+                      setRemoveAssignment(false)
+                    }}
+                  >
+                    Cancel - Keep existing assignment
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Toggle */}
           <div className="flex items-center gap-3">
             <input
@@ -158,7 +258,7 @@ function EditLecture() {
         <div>
           {loading && (
             <div className="flex flex-col items-center gap-2 mt-2">
-              <p className="text-gray-700 text-sm font-medium">Uploading video... Please wait</p>
+              <p className="text-gray-700 text-sm font-medium">Uploading files... Please wait</p>
               
               <div className="flex gap-2">
                 <span className="w-3 h-3 bg-black rounded-full animate-bounce"></span>

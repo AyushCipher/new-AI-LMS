@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaPlayCircle, FaCheckCircle, FaComments, FaBook, FaQuestionCircle } from 'react-icons/fa';
+import { FaPlayCircle, FaCheckCircle, FaComments, FaBook, FaQuestionCircle, FaFileDownload } from 'react-icons/fa';
+import LectureAnnouncements from '../components/LectureAnnouncements';
+import GetCertifiedSection from '../components/GetCertifiedSection';
 import { FaArrowLeftLong } from "react-icons/fa6";
 import { MdSend, MdReply } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
@@ -9,8 +11,10 @@ import axios from 'axios';
 import { serverUrl } from '../App';
 import { toast } from 'react-toastify';
 import { ClipLoader } from 'react-spinners';
+import { setCourseData } from '../redux/courseSlice';
 
 function ViewLecture() {
+  const dispatch = useDispatch();
   const { courseId } = useParams();
   const { courseData } = useSelector((state) => state.course);
   const { userData } = useSelector((state) => state.user);
@@ -37,6 +41,7 @@ function ViewLecture() {
   const [progress, setProgress] = useState({});
   const [lectureProgress, setLectureProgress] = useState({});
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0); // Track completed lectures for certification refresh
   
   // Quiz state
   const [showQuiz, setShowQuiz] = useState(false);
@@ -48,6 +53,32 @@ function ViewLecture() {
   const [quizScore, setQuizScore] = useState(0);
 
   const courseCreator = userData?._id === selectedCourse?.creator ? userData : null;
+
+  // Fetch fresh course data on mount to get latest lecture info (including assignments)
+  useEffect(() => {
+    const fetchFreshCourseData = async () => {
+      try {
+        const result = await axios.get(serverUrl + "/api/course/getpublishedcoures", { withCredentials: true });
+        dispatch(setCourseData(result.data));
+      } catch (error) {
+        console.error("Error refreshing course data:", error);
+      }
+    };
+    fetchFreshCourseData();
+  }, [courseId]);
+
+  // Update selectedLecture when course data changes
+  useEffect(() => {
+    if (selectedCourse?.lectures?.length > 0 && !selectedLecture) {
+      setSelectedLecture(selectedCourse.lectures[0]);
+    } else if (selectedCourse?.lectures && selectedLecture) {
+      // Update selectedLecture with fresh data
+      const updatedLecture = selectedCourse.lectures.find(l => l._id === selectedLecture._id);
+      if (updatedLecture && JSON.stringify(updatedLecture) !== JSON.stringify(selectedLecture)) {
+        setSelectedLecture(updatedLecture);
+      }
+    }
+  }, [selectedCourse?.lectures]);
 
   useEffect(() => {
     if (selectedLecture?._id) {
@@ -187,6 +218,11 @@ function ViewLecture() {
 
       const wasCompleted = lectureProgress?.isCompleted;
       const nowCompleted = response.data.isCompleted;
+
+      // Increment completed count to refresh certification section
+      if (!wasCompleted && nowCompleted) {
+        setCompletedCount(prev => prev + 1);
+      }
 
       if (!wasCompleted && nowCompleted && !response.data.quizAttempted) {
         setShowCompletionModal(true);
@@ -346,8 +382,8 @@ function ViewLecture() {
           </div>
         </div>
 
-        {/* Right - All Lectures */}
-        <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-md p-4 md:p-6 border border-gray-200 h-fit max-h-[500px] overflow-y-auto">
+        {/* Right - All Lectures & Announcements */}
+        <div className="w-full lg:w-1/3 bg-white rounded-2xl shadow-md p-4 md:p-6 border border-gray-200 h-fit max-h-[900px] overflow-y-auto">
           <h2 className="text-xl font-bold mb-4 text-gray-800">All Lectures</h2>
           <div className="flex flex-col gap-3">
             {selectedCourse?.lectures?.length > 0 ? (
@@ -381,6 +417,12 @@ function ViewLecture() {
             )}
           </div>
 
+          {/* Announcements Section */}
+          <LectureAnnouncements courseId={courseId} />
+
+          {/* Get Certified Section */}
+          <GetCertifiedSection courseId={courseId} userId={userData?._id} refreshTrigger={completedCount} />
+
           {/* Instructor Section */}
           {courseCreator && (
             <div className="mt-6 rounded-xl border p-4 shadow-sm bg-gray-50">
@@ -403,7 +445,7 @@ function ViewLecture() {
       {/* Bottom Section - Comments & Summary */}
       <div className="bg-white rounded-2xl shadow-md p-4 md:p-6 border border-gray-200">
         {/* Tab Buttons */}
-        <div className="flex gap-4 mb-6 border-b pb-4">
+        <div className="flex gap-4 mb-6 border-b pb-4 flex-wrap">
           <button
             onClick={() => setActiveTab('comments')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
@@ -411,6 +453,14 @@ function ViewLecture() {
             }`}
           >
             <FaComments /> Doubts & Discussion
+          </button>
+          <button
+            onClick={() => setActiveTab('assignments')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition ${
+              activeTab === 'assignments' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <FaFileDownload /> Assignments
           </button>
           <button
             onClick={() => { setActiveTab('summary'); fetchSummary(); }}
@@ -536,6 +586,89 @@ function ViewLecture() {
               </div>
             ) : (
               <p className="text-center text-gray-500 py-8">No comments yet. Be the first to ask a doubt!</p>
+            )}
+          </div>
+        )}
+
+        {/* Assignments Section */}
+        {activeTab === 'assignments' && (
+          <div>
+            {selectedLecture?.assignmentUrl ? (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center">
+                    <FaFileDownload className="text-green-600 text-2xl" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1">
+                      Assignment for this Lecture
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-3">
+                      {selectedLecture.assignmentName || "Download the assignment file"}
+                    </p>
+                    <button
+                      className="inline-flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 transition font-medium"
+                      onClick={async () => {
+                        try {
+                          toast.info("Downloading assignment...");
+                          
+                          // Use server proxy which handles Cloudinary authentication
+                          const response = await axios.get(
+                            `${serverUrl}/api/course/downloadassignment/${selectedLecture._id}`,
+                            { 
+                              withCredentials: true,
+                              responseType: 'blob'
+                            }
+                          );
+                          
+                          const blob = new Blob([response.data], { 
+                            type: response.headers['content-type'] || 'application/octet-stream' 
+                          });
+                          const url = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = selectedLecture.assignmentName || 'assignment';
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          window.URL.revokeObjectURL(url);
+                          toast.success("Assignment downloaded!");
+                        } catch (error) {
+                          console.error("Download error:", error);
+                          let errorMessage = "Failed to download. Please ask instructor to re-upload the assignment.";
+                          if (error.response?.data instanceof Blob) {
+                            try {
+                              const text = await error.response.data.text();
+                              const json = JSON.parse(text);
+                              errorMessage = json.message || errorMessage;
+                            } catch (e) {}
+                          } else if (error.response?.data?.message) {
+                            errorMessage = error.response.data.message;
+                          }
+                          toast.error(errorMessage);
+                        }
+                      }}
+                    >
+                      <FaFileDownload /> Download Assignment
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-green-200">
+                  <p className="text-sm text-gray-500">
+                    💡 Complete this assignment to practice what you learned in this lecture.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaFileDownload className="text-gray-400 text-2xl" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-700 mb-2">No Assignment Available</h3>
+                <p className="text-gray-500 text-sm">
+                  The instructor hasn't added an assignment for this lecture yet.
+                </p>
+              </div>
             )}
           </div>
         )}

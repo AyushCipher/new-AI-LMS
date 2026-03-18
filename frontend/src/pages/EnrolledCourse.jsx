@@ -1,8 +1,11 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { FaArrowLeftLong } from "react-icons/fa6";
+import { FaArrowLeftLong, FaCertificate } from "react-icons/fa6";
 import { ClipLoader } from 'react-spinners';
+import socket from '../utils/socket';
+import { toast } from 'react-toastify';
+import CourseProgressBar from '../components/CourseProgressBar';
 
 function EnrolledCourse() {
   const navigate = useNavigate()
@@ -19,6 +22,24 @@ function EnrolledCourse() {
 
   const enrolledCourses = userData.enrolledCourses || [];
 
+  useEffect(() => {
+    if (enrolledCourses.length > 0) {
+      // Join course rooms for real-time announcements
+      const courseIds = enrolledCourses.map(c => c._id);
+      socket.emit('joinCourses', courseIds);
+
+      // Listen for new announcements
+      socket.on('newAnnouncement', (announcement) => {
+        toast.info(`New announcement for your course: ${announcement.title}`);
+      });
+
+      // Cleanup listener on unmount
+      return () => {
+        socket.off('newAnnouncement');
+      };
+    }
+  }, [enrolledCourses]);
+
   return (
     <div className="min-h-screen w-full px-4 py-9 bg-gray-50">
 
@@ -26,6 +47,16 @@ function EnrolledCourse() {
       <h1 className="text-3xl text-center font-bold text-gray-800 mb-6">
         My Enrolled Courses
       </h1>
+
+      {/* My Certificates Link */}
+      <div className="flex justify-center mb-6">
+        <button
+          onClick={() => navigate("/my-certificates")}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium text-sm"
+        >
+          <FaCertificate /> View My Certificates
+        </button>
+      </div>
 
       {enrolledCourses.length === 0 ? (
         <p className="text-gray-500 text-center w-full">You haven't enrolled in any course yet.</p>
@@ -49,6 +80,8 @@ function EnrolledCourse() {
                 <p className="text-sm text-gray-700">{course.level}</p>
                 <h1 className='px-[10px] text-center py-[10px] border-2 bg-black border-black text-white rounded-[10px] text-[15px] 
                 font-light flex items-center justify-center gap-2 cursor-pointer mt-[10px] hover:bg-gray-600' onClick={() => navigate(`/viewlecture/${course._id}`)}>Watch Now</h1>
+                {/* Progress Bar */}
+                <CourseProgressBar courseId={course._id} />
               </div>
             </div>
           ))}

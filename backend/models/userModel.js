@@ -19,8 +19,45 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["educator", "student"],
+      enum: ["educator", "student", "admin"],
       required: true
+    },
+    teacherApplication: {
+      qualification: {
+        type: String,
+        default: ""
+      },
+      interestsToTeach: {
+        type: String,
+        default: ""
+      },
+      whyTeach: {
+        type: String,
+        default: ""
+      },
+      personalDetails: {
+        type: String,
+        default: ""
+      },
+      status: {
+        type: String,
+        enum: ["not_submitted", "pending", "approved", "rejected"],
+        default: "not_submitted"
+      },
+      submittedAt: {
+        type: Date
+      },
+      reviewedAt: {
+        type: Date
+      },
+      reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      },
+      adminNote: {
+        type: String,
+        default: ""
+      }
     },
     photoUrl: {
       type: String,

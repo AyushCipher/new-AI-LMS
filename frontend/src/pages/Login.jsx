@@ -26,13 +26,17 @@ function Login() {
         try {
             const result = await axios.post(serverUrl + "/api/auth/login" , {email , password} ,{withCredentials:true})
             dispatch(setUserData(result.data))
-            navigate("/")
+            if (result.data?.role === "admin") {
+                navigate("/adminpanel")
+            } else {
+                navigate("/")
+            }
             setLoading(false)
             toast.success("Login Successfully")
         } catch (error) {
             console.log(error)
             setLoading(false)
-            toast.error(error.response.data.message)
+            toast.error(error?.response?.data?.message || "Unable to connect to server. Please start backend and try again.")
         }
     }
 
@@ -43,15 +47,25 @@ function Login() {
                 let user = response.user
                 let name = user.displayName;
                 let email = user.email
-                let role = ""
+                // For login, we don't send role - backend will handle existing users
+                // New users should use the signup page instead
                 
-                const result = await axios.post(serverUrl + "/api/auth/googlesignup" , {name , email , role}, {withCredentials:true})
+                const result = await axios.post(serverUrl + "/api/auth/googlesignup" , {name , email}, {withCredentials:true})
                 dispatch(setUserData(result.data))
-                navigate("/")
+                if (result.data?.role === "admin") {
+                    navigate("/adminpanel")
+                } else {
+                    navigate("/")
+                }
                 toast.success("Login Successfully")
             } catch (error) {
                 console.log(error)
-                toast.error(error.response.data.message)
+                if (error?.response?.status === 400) {
+                    toast.error("Please sign up first by selecting your role")
+                    setTimeout(() => navigate("/signup"), 2000)
+                } else {
+                    toast.error(error?.response?.data?.message || "Google login failed")
+                }
             }
             
         }

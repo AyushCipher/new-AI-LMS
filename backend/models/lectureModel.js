@@ -11,6 +11,12 @@ const lectureSchema = new mongoose.Schema({
     isPreviewFree:{
         type:Boolean
     },
+    assignmentUrl:{
+        type:String
+    },
+    assignmentName:{
+        type:String
+    },
     
 },{timestamps:true})
 

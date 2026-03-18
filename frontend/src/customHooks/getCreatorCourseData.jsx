@@ -12,6 +12,10 @@ const getCreatorCourseData = () => {
   return (
     useEffect(()=>{
       const getCreatorData = async () => {
+        if (!userData || (userData.role !== "educator" && userData.role !== "admin")) {
+          dispatch(setCreatorCourseData([]))
+          return
+        }
         try {
           const result = await axios.get(serverUrl + "/api/course/getcreatorcourses", {withCredentials:true})
           await dispatch(setCreatorCourseData(result.data))
@@ -19,11 +23,11 @@ const getCreatorCourseData = () => {
 
         } catch (error) {
           console.log(error)
-          toast.error(error.response.data.message)
+          toast.error(error?.response?.data?.message || "Unable to fetch creator courses")
         }
       }
       getCreatorData()
-    },[userData])
+    },[userData, dispatch])
   )
 }
 

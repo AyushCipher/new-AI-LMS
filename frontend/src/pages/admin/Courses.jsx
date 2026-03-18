@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { FaEdit } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -8,12 +8,15 @@ import { toast } from 'react-toastify';
 import { setCreatorCourseData } from '../../redux/courseSlice';
 import img1 from "../../assets/empty.jpg"
 import { FaArrowLeftLong } from "react-icons/fa6";
+import EnrolledStudentsProgress from '../../components/EnrolledStudentsProgress';
 
 function Courses() {
 
   let navigate = useNavigate()
   let dispatch = useDispatch()
   const { creatorCourseData } = useSelector(state => state.course)
+  const [selectedCourseId, setSelectedCourseId] = useState(null)
+  const [showStudents, setShowStudents] = useState(false)
 
   useEffect(() => {
     const getCreatorData = async () => {
@@ -31,6 +34,16 @@ function Courses() {
   }, [])
 
 
+  const handleViewStudents = (courseId) => {
+    setSelectedCourseId(courseId)
+    setShowStudents(true)
+  }
+
+  const handleBackToCourses = () => {
+    setShowStudents(false)
+    setSelectedCourseId(null)
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       <div className="w-[100%] min-h-screen p-4 sm:p-6 bg-gray-100">
@@ -47,95 +60,80 @@ function Courses() {
         </div>
 
 
-        {/* For larger screens (table layout) */}
-        <div className="hidden md:block bg-white rounded-xl shadow p-4 overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="border-b bg-gray-50">
-              <tr>
-                <th className="text-left py-3 px-4">Course</th>
-                <th className="text-left py-3 px-4">Price</th>
-                <th className="text-left py-3 px-4">Status</th>
-                <th className="text-left py-3 px-4">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {creatorCourseData?.map((course, index) => (
-                <tr key={index} className="border-b hover:bg-gray-50 transition duration-200">
-                  <td className="py-3 px-4 flex items-center gap-4">
-                    {course?.thumbnail ? (
-                      <img 
-                        src={course.thumbnail}
-                        alt="Course Thumbnail"
-                        className="w-20 h-14 object-cover rounded-md"
-                      />
-                    ) : (
-                      <img 
-                        src={img1}
-                        alt="Default Thumbnail"
-                        className="w-14 h-14 object-cover rounded-md"
-                      />
-                    )}
-                    <span>{course?.title}</span>
-                  </td>
-
-                  {course?.price ? <td className="py-3 px-4">₹{course?.price}</td> : <td className="py-3 px-4">₹ NA</td>}
-
-                  <td className="py-3 px-4">
-                    <span className={`px-3 py-1 rounded-full text-xs ${course?.isPublished ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"}`}>
-                      {course?.isPublished ? "Published" : "Draft"}
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-4">
-                    <FaEdit className="text-gray-600 hover:text-blue-600 cursor-pointer" onClick={() => navigate(`/addcourses/${course?._id}`)} />
-                  </td>
+        {!showStudents ? (
+          <div className="hidden md:block bg-white rounded-xl shadow p-4 overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="border-b bg-gray-50">
+                <tr>
+                  <th className="text-left py-3 px-4">Course</th>
+                  <th className="text-left py-3 px-4">Price</th>
+                  <th className="text-left py-3 px-4">Status</th>
+                  <th className="text-left py-3 px-4">Action</th>
+                  <th className="text-left py-3 px-4">Students</th>
                 </tr>
-              ))
-              }
-            </tbody>
-          </table>
+              </thead>
 
-          <p className="text-center text-sm text-gray-400 mt-6">
-            A list of your recent courses.
-          </p>
+              <tbody>
+                {creatorCourseData?.map((course, index) => (
+                  <tr key={index} className="border-b hover:bg-gray-50 transition duration-200">
+                    <td className="py-3 px-4 flex items-center gap-4">
+                      {course?.thumbnail ? (
+                        <img 
+                          src={course.thumbnail}
+                          alt="Course Thumbnail"
+                          className="w-20 h-14 object-cover rounded-md"
+                        />
+                      ) : (
+                        <img 
+                          src={img1}
+                          alt="Default Thumbnail"
+                          className="w-14 h-14 object-cover rounded-md"
+                        />
+                      )}
+                      <span>{course?.title}</span>
+                    </td>
 
-        </div>
+                    {course?.price ? <td className="py-3 px-4">₹{course?.price}</td> : <td className="py-3 px-4">₹ NA</td>}
 
+                    <td className="py-3 px-4">
+                      <span className={`px-3 py-1 rounded-full text-xs ${course?.isPublished ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"}`}>
+                        {course?.isPublished ? "Published" : "Draft"}
+                      </span>
+                    </td>
 
-        {/* For samller screens (table layout) */}
-        <div className="md:hidden space-y-4">
-          {creatorCourseData?.map((course, index) => (
-            <div key={index} className="bg-white rounded-lg shadow p-4 flex flex-col gap-3">
-              <div className="flex gap-4 items-center">
-                {course?.thumbnail ? <img
-                  src={course?.thumbnail}
-                  alt=""
-                  className="w-16 h-16 rounded-md object-cover"
-                /> : <img
-                  src={img1}
-                  alt=""
-                  className="w-16 h-16 rounded-md object-cover"
-                />}
-                
-                <div className="flex-1">
-                  <h2 className="font-medium text-sm">{course?.title}</h2>
-                  {course?.price ? <p className="text-gray-600 text-xs mt-1">₹{course?.price}</p> : <p className="text-gray-600 text-xs mt-1">₹ NA</p>}
-                </div>
-                <FaEdit className="text-gray-600 hover:text-blue-600 cursor-pointer" onClick={() => navigate(`/addcourses/${course?._id}`)} />
-              </div>
+                    <td className="py-3 px-4">
+                      <FaEdit className="text-gray-600 hover:text-blue-600 cursor-pointer" onClick={() => navigate(`/addcourses/${course?._id}`)} />
+                    </td>
 
-              <span className={`w-fit px-3 py-1 text-xs rounded-full ${course?.isPublished ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"}`}>
-                {course?.isPublished ? "Published" : "Draft"}
-              </span>
-            </div>
-          ))}
+                    <td className="py-3 px-4">
+                      <button
+                        className="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-700"
+                        onClick={() => handleViewStudents(course._id)}
+                      >
+                        View Students
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-          <p className="text-center text-sm text-gray-400 mt-4 pl-[80px]">
-            A list of your recent courses.
-          </p>
+            <p className="text-center text-sm text-gray-400 mt-6">
+              A list of your recent courses.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow p-4 mt-6">
+            <button
+              className="mb-4 bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
+              onClick={handleBackToCourses}
+            >
+              Back to Courses
+            </button>
+            <EnrolledStudentsProgress courseId={selectedCourseId} />
+          </div>
+        )}
 
-        </div>
       </div>
     </div>
   );

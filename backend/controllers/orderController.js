@@ -1,6 +1,7 @@
 import Course from "../models/courseModel.js";
 import razorpay from 'razorpay'
 import User from "../models/userModel.js";
+import { sendCourseEnrollmentMail } from "../configs/Mail.js";
 import dotenv from "dotenv"
 dotenv.config()
 
@@ -57,6 +58,20 @@ export const verifyPayment = async (req, res) => {
       if (!course.enrolledStudents.includes(userId)) {
         course.enrolledStudents.push(userId);
         await course.save();
+      }
+
+      // Send confirmation email to the user
+      try {
+        await sendCourseEnrollmentMail(
+          user.email,
+          user.name,
+          course.title,
+          courseId
+        );
+        console.log('Course enrollment confirmation email sent successfully');
+      } catch (emailError) {
+        console.error('Failed to send enrollment email:', emailError);
+        // Don't fail the entire request if email fails
       }
 
       return res.status(200).json({ message: "Payment verified and enrollment successful" });

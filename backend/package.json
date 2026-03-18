@@ -7,7 +7,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "make-admin": "node scripts/makeAdmin.js"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
@@ -25,7 +26,10 @@
     "multer": "^2.0.1",
     "nodemailer": "^7.0.5",
     "nodemon": "^3.1.10",
+    "pdfkit": "^0.17.2",
     "razorpay": "^2.9.6",
+    "socket.io": "^4.7.5",
+    "streamifier": "^0.1.1",
     "uuid": "^13.0.0",
     "validator": "^13.15.15"
   }
