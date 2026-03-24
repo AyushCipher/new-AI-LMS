@@ -27,7 +27,10 @@ app.use(express.json())
 app.use(cookieParser())
 
 app.use(cors({
-    origin: "https://new-ai-lms-frontend.onrender.com",
+    origin: [
+      "https://new-ai-lms-frontend.onrender.com",
+      "https://new-ai-lms.onrender.com"
+    ],
     credentials: true
 }));
 
