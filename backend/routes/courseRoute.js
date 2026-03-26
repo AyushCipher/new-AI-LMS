@@ -10,7 +10,7 @@ let courseRouter = express.Router()
 courseRouter.get("/enrolled-students/:courseId", isAuth, isApprovedEducator, getEnrolledStudentsWithProgress);
 
 courseRouter.post("/create",isAuth,isApprovedEducator,upload.single("thumbnail"),createCourse)
-courseRouter.get("/getpublishedcoures",getPublishedCourses)
+courseRouter.get("/getpublishedcourses",getPublishedCourses)
 courseRouter.get("/getcreatorcourses",isAuth,getCreatorCourses)
 courseRouter.post("/editcourse/:courseId",isAuth,isApprovedEducator,upload.single("thumbnail"),editCourse)
 courseRouter.get("/getcourse/:courseId",isAuth,getCourseById)
