@@ -58,7 +58,7 @@ function ViewLecture() {
   useEffect(() => {
     const fetchFreshCourseData = async () => {
       try {
-        const result = await axios.get(serverUrl + "/api/course/getpublishedcoures", { withCredentials: true });
+        const result = await axios.get(serverUrl + "/api/course/getpublishedcourses", { withCredentials: true });
         dispatch(setCourseData(result.data));
       } catch (error) {
         console.error("Error refreshing course data:", error);
