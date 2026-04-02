@@ -60,7 +60,7 @@ function Dashboard() {
           <img
             src={userData?.photoUrl || img}
             alt="Educator"
-            className="w-28 h-28 rounded-full object-cover border-4 border-black shadow-md"
+            className="w-28 h-28 rounded-full object-cover border-4 border-black shadow-md mt-8"
           />
 
           <div className="text-center md:text-left space-y-1">

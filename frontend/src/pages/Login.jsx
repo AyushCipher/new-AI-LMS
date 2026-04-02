@@ -41,32 +41,32 @@ function Login() {
     }
 
      const googleLogin = async () => {
-            try {
-                const response = await signInWithPopup(auth, provider)
-                
-                let user = response.user
-                let name = user.displayName;
-                let email = user.email
-                // For login, we don't send role - backend will handle existing users
-                // New users should use the signup page instead
-                
-                const result = await axios.post(serverUrl + "/api/auth/googlesignup" , {name , email}, {withCredentials:true})
-                dispatch(setUserData(result.data))
-                if (result.data?.role === "admin") {
-                    navigate("/adminpanel")
-                } else {
-                    navigate("/")
-                }
-                toast.success("Login Successfully")
-            } catch (error) {
-                console.log(error)
-                if (error?.response?.status === 400) {
-                    toast.error("Please sign up first by selecting your role")
-                    setTimeout(() => navigate("/signup"), 2000)
-                } else {
-                    toast.error(error?.response?.data?.message || "Google login failed")
-                }
+        try {
+            const response = await signInWithPopup(auth, provider)
+            let user = response.user
+            let name = user.displayName;
+            let email = user.email
+            // For login, we don't send role - backend will handle existing users
+            // New users should use the signup page instead
+            const result = await axios.post(serverUrl + "/api/auth/googlesignup" , {name , email}, {withCredentials:true})
+            dispatch(setUserData(result.data))
+            if (result.data?.role === "admin") {
+                navigate("/adminpanel")
+            } else {
+                navigate("/")
             }
+            toast.success("Login Successfully")
+        } catch (error) {
+            console.log(error)
+            if (error?.response?.data?.message === "User already signed up with email/password. Please use email login.") {
+                toast.error("User already signed up with email/password. Please use email login.")
+            } else if (error?.response?.status === 400) {
+                toast.error("Please sign up first by selecting your role")
+                setTimeout(() => navigate("/signup"), 2000)
+            } else {
+                toast.error(error?.response?.data?.message || "Google login failed")
+            }
+        }
             
         }
     return (
