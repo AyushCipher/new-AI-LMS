@@ -25,6 +25,7 @@ import ViewLecture from './pages/ViewLecture'
 import SearchWithAi from './pages/SearchWithAi'
 import getAllReviews from './customHooks/getAllReviews'
 import NotFound from './pages/NotFound';
+import useSocketCourseJoin from './customHooks/useSocketCourseJoin'
 // Exam Management imports
 import ExamManagement from './pages/admin/ExamManagement'
 import CreateExam from './pages/admin/CreateExam'
@@ -58,6 +59,9 @@ function App() {
   const isEducator = userData?.role === "educator"
   const isAdmin = userData?.role === "admin"
   const isEducatorApproved = isEducator && userData?.teacherApplication?.status === "approved"
+
+  // Join course rooms globally for real-time announcements
+  useSocketCourseJoin()
 
   getCurrentUser()
   getCouseData()

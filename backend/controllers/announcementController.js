@@ -18,8 +18,10 @@ export const createAnnouncement = async (req, res) => {
       content,
       createdBy: userId
     });
+    // Convert to plain object for socket emission
+    const announcementData = announcement.toObject();
     // Emit real-time notification to enrolled students
-    emitAnnouncement(courseId, announcement);
+    emitAnnouncement(courseId, announcementData);
     return res.status(201).json(announcement);
   } catch (error) {
     return res.status(500).json({ message: `Failed to create announcement: ${error}` });

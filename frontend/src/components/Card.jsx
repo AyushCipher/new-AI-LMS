@@ -2,13 +2,19 @@ import React, { useEffect, useState } from "react";
 import { FaStar } from "react-icons/fa";
 import socket from '../utils/socket';
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const CourseCard = ({ thumbnail, title, category, price, id, reviews }) => {
+  const navigate = useNavigate()
+  const { userData } = useSelector((state) => state.user);
+  
+  // Check if user is enrolled in this course
+  const isEnrolled = userData?.enrolledCourses?.some(course => String(course._id || course) === String(id));
+  
   const [newAnnouncementCount, setNewAnnouncementCount] = useState(() => {
     const stored = localStorage.getItem(`announcementCount_${id}`);
     return stored ? parseInt(stored, 10) : 0;
   });
-  const navigate = useNavigate()
   
   
   const calculateAverageRating = (reviews) => {
@@ -24,23 +30,36 @@ const CourseCard = ({ thumbnail, title, category, price, id, reviews }) => {
   const avgRating = calculateAverageRating(reviews);
   console.log("Average Rating:", avgRating);
 
+  // Only listen for announcements if user is enrolled in this course
   useEffect(() => {
+    if (!isEnrolled) {
+      console.log('User not enrolled in course', id, ', skipping announcement listener');
+      return;
+    }
+
     const handleNewAnnouncement = (announcement) => {
-      console.log('Received newAnnouncement:', announcement, 'Card id:', id);
-      if (announcement.course === id) {
+      // Convert both IDs to strings for comparison (to handle ObjectId vs string)
+      const announcementCourseId = String(announcement.course);
+      const cardId = String(id);
+      
+      console.log('Received newAnnouncement:', announcement, 'Card id:', cardId, 'Announcement course:', announcementCourseId, 'Is Enrolled:', isEnrolled);
+      
+      if (announcementCourseId === cardId) {
         // WhatsApp-style: Always set to 1 if badge is 0, else increment
         setNewAnnouncementCount((prev) => {
           const updated = prev === 0 ? 1 : prev + 1;
           localStorage.setItem(`announcementCount_${id}`, updated);
+          console.log('Updated announcement count for course', cardId, ':', updated);
           return updated;
         });
       }
     };
+    
     socket.on('newAnnouncement', handleNewAnnouncement);
     return () => {
       socket.off('newAnnouncement', handleNewAnnouncement);
     };
-  }, [id]);
+  }, [id, isEnrolled]);
 
   // Sync state with localStorage if changed elsewhere
   useEffect(() => {

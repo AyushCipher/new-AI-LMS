@@ -20,17 +20,40 @@ export function setupSocket(server) {
   });
 
   io.on('connection', (socket) => {
+    console.log('New user connected:', socket.id);
+    
     // Join room for each course the user is enrolled in
     socket.on('joinCourses', (courseIds) => {
-      courseIds.forEach(courseId => {
-        socket.join(`course_${courseId}`);
-      });
+      if (Array.isArray(courseIds)) {
+        courseIds.forEach(courseId => {
+          const roomName = `course_${courseId}`;
+          socket.join(roomName);
+        });
+        console.log(`User ${socket.id} joined course rooms:`, courseIds.map(id => `course_${id}`));
+      }
+    });
+
+    // Handle disconnect
+    socket.on('disconnect', () => {
+      console.log('User disconnected:', socket.id);
     });
   });
 }
 
 export function emitAnnouncement(courseId, announcement) {
   if (io) {
-    io.to(`course_${courseId}`).emit('newAnnouncement', announcement);
+    const roomName = `course_${courseId}`;
+    const announcementToSend = {
+      _id: announcement._id,
+      course: String(courseId), // Ensure course is a string
+      title: announcement.title,
+      content: announcement.content,
+      createdBy: announcement.createdBy,
+      createdAt: announcement.createdAt,
+      updatedAt: announcement.updatedAt
+    };
+    
+    console.log(`Emitting announcement to room ${roomName}:`, announcementToSend.title);
+    io.to(roomName).emit('newAnnouncement', announcementToSend);
   }
 }

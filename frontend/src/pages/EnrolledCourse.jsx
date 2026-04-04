@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { FaArrowLeftLong, FaCertificate } from "react-icons/fa6";
@@ -10,6 +10,19 @@ import CourseProgressBar from '../components/CourseProgressBar';
 function EnrolledCourse() {
   const navigate = useNavigate()
   const { userData } = useSelector((state) => state.user);
+  const [newAnnouncementCounts, setNewAnnouncementCounts] = useState({});
+
+  // Initialize announcement counts from localStorage
+  useEffect(() => {
+    if (userData?.enrolledCourses) {
+      const counts = {};
+      userData.enrolledCourses.forEach(course => {
+        const stored = localStorage.getItem(`announcementCount_${course._id}`);
+        counts[course._id] = stored ? parseInt(stored, 10) : 0;
+      });
+      setNewAnnouncementCounts(counts);
+    }
+  }, [userData?.enrolledCourses]);
 
   // Handle loading state
   if (!userData) {
@@ -29,13 +42,24 @@ function EnrolledCourse() {
       socket.emit('joinCourses', courseIds);
 
       // Listen for new announcements
-      socket.on('newAnnouncement', (announcement) => {
+      const handleNewAnnouncement = (announcement) => {
         toast.info(`New announcement for your course: ${announcement.title}`);
-      });
+        
+        // Update the announcement count
+        setNewAnnouncementCounts((prev) => {
+          const updated = { ...prev };
+          const count = updated[announcement.course] || 0;
+          updated[announcement.course] = count === 0 ? 1 : count + 1;
+          localStorage.setItem(`announcementCount_${announcement.course}`, updated[announcement.course]);
+          return updated;
+        });
+      };
+      
+      socket.on('newAnnouncement', handleNewAnnouncement);
 
       // Cleanup listener on unmount
       return () => {
-        socket.off('newAnnouncement');
+        socket.off('newAnnouncement', handleNewAnnouncement);
       };
     }
   }, [enrolledCourses]);
@@ -65,8 +89,17 @@ function EnrolledCourse() {
           {enrolledCourses.map((course) => (
             <div
               key={course._id}
-              className="bg-white rounded-2xl shadow-md overflow-hidden border flex flex-col"
+              className="bg-white rounded-2xl shadow-md overflow-hidden border flex flex-col relative"
               style={{ width: "320px", minHeight: "420px" }}
+              onClick={() => {
+                setNewAnnouncementCounts((prev) => {
+                  const updated = { ...prev };
+                  updated[course._id] = 0;
+                  localStorage.setItem(`announcementCount_${course._id}`, 0);
+                  return updated;
+                });
+                navigate(`/viewlecture/${course._id}`);
+              }}
             >
               <img 
                 src={course.thumbnail}
@@ -74,12 +107,15 @@ function EnrolledCourse() {
                 className="w-full object-cover"
                 style={{ height: "180px" }}
               />
+              {newAnnouncementCounts[course._id] > 0 && (
+                <span className="absolute top-2 left-2 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow z-10 tracking-wide">NEW</span>
+              )}
               <div className="p-4 flex flex-col flex-1 justify-between">
                 <h2 className="text-lg font-semibold text-gray-800">{course.title}</h2>
                 <p className="text-sm text-gray-600 mb-2">{course.category}</p>
                 <p className="text-sm text-gray-700">{course.level}</p>
                 <h1 className='px-[10px] text-center py-[10px] border-2 bg-black border-black text-white rounded-[10px] text-[15px] 
-                font-light flex items-center justify-center gap-2 cursor-pointer mt-[10px] hover:bg-gray-600' onClick={() => navigate(`/viewlecture/${course._id}`)}>Watch Now</h1>
+                font-light flex items-center justify-center gap-2 cursor-pointer mt-[10px] hover:bg-gray-600'>Watch Now</h1>
                 {/* Progress Bar */}
                 <CourseProgressBar courseId={course._id} />
               </div>
